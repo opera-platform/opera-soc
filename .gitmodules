@@ -163,3 +163,9 @@
 [submodule "generators/radiance"]
 	path = generators/radiance
 	url = https://github.com/ucb-bar/radiance.git
+[submodule "generators/opera-dsp"]
+	path = generators/opera-dsp
+	url = git@github.com:opera-platform/opera-dsp.git
+[submodule "generators/ethernet"]
+	path = generators/ethernet
+	url = git@github.com:milovanovic/ethernet-wrapper.git
