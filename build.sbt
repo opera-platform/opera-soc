@@ -552,3 +552,43 @@ lazy val ethernet = freshProject("ethernet", file("./generators/ethernet"))
     Test / scalaSource := baseDirectory.value / "test" / "scala"
   )
   .settings(scalaTestSettings)
+
+// OPERA-DSP
+lazy val operaDspSettings = commonSettings ++ scalaTestSettings ++ Seq(
+  libraryDependencies ++= rocketLibDeps.value,
+  libraryDependencies ++= Seq(
+    "edu.berkeley.cs" %% "chiseltest" % chiselTestVersion,
+    "com.typesafe.play" %% "play-json" % "2.10.6",
+    "org.scalanlp" %% "breeze" % "2.1.0"
+  )
+)
+
+lazy val operaDspLeafSettings = operaDspSettings ++ Seq(
+  Test / fork := true
+)
+
+lazy val opera_common = Project(id = "opera-common", base = file("generators/opera-dsp/common"))
+  .dependsOn(rocketchip, rocket_dsp_utils)
+  .settings(operaDspSettings: _*)
+
+lazy val opera_preprocessing = Project(id = "opera-preprocessing", base = file("generators/opera-dsp/preprocessing"))
+  .dependsOn(rocketchip, rocket_dsp_utils, opera_common)
+  .settings(operaDspLeafSettings: _*)
+
+lazy val opera_windowing = Project(id = "opera-windowing", base = file("generators/opera-dsp/windowing"))
+  .dependsOn(rocketchip, rocket_dsp_utils, opera_common)
+  .settings(operaDspLeafSettings: _*)
+
+lazy val opera_log_magnitude = Project(id = "opera-log-magnitude", base = file("generators/opera-dsp/log-magnitude"))
+  .dependsOn(rocketchip, rocket_dsp_utils, opera_common)
+  .settings(operaDspLeafSettings: _*)
+
+lazy val opera_fft = Project(id = "opera-fft", base = file("generators/opera-dsp/fft"))
+  .dependsOn(rocketchip, rocket_dsp_utils, opera_common)
+  .settings(operaDspLeafSettings: _*)
+  .settings(libraryDependencies += "org.scalanlp" %% "breeze-viz" % "2.1.0" % Test)
+
+lazy val opera_cfar = Project(id = "opera-cfar", base = file("generators/opera-dsp/cfar"))
+  .dependsOn(rocketchip, rocket_dsp_utils, opera_common)
+  .settings(operaDspLeafSettings: _*)
+  .settings(libraryDependencies += "org.scalanlp" %% "breeze-viz" % "2.1.0" % Test)
