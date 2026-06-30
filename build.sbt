@@ -172,7 +172,7 @@ lazy val chipyard = {
   val baseProjects: Seq[ProjectReference] =
     Seq(
       testchipip, rocketchip, boom, rocketchip_blocks, rocketchip_inclusive_cache,
-      icenet, tracegen,
+      icenet, tracegen, ethernet,
       constellation, barf, shuttle, rerocc,
     ).map(sbt.Project.projectToRef) ++
     (if (useChisel7) Seq() else Seq(sbt.Project.projectToRef(firrtl2_bridge))) ++
@@ -532,5 +532,23 @@ lazy val firechip = (project in file("generators/firechip/chip"))
     commonSettings,
     Test / testGrouping := isolateAllTests( (Test / definedTests).value ),
     Test / testOptions += Tests.Argument("-oF")
+  )
+  .settings(scalaTestSettings)
+
+// Ethernet
+lazy val ethernet = freshProject("ethernet", file("./generators/ethernet"))
+  .dependsOn(rocketchip, rocket_dsp_utils, testchipip)
+  .settings(
+    libraryDependencies ++= rocketLibDeps.value,
+    libraryDependencies ++= Seq("edu.berkeley.cs" %% "chiseltest" % chiselTestVersion),
+    libraryDependencies ++= Seq("com.typesafe.play" %% "play-json" % "2.10.6"),
+    libraryDependencies ++= Seq("org.scalanlp" %% "breeze" % "2.1.0")
+  )
+  .settings(commonSettings)
+  .settings(
+    Compile / resourceDirectory := baseDirectory.value / "main" / "resources" / "vsrc" / "ethernet" / "rtl",
+    Compile / unmanagedResourceDirectories += baseDirectory.value / "main" / "resources" / "vsrc" / "ethernet" / "lib" / "axis" / "rtl",
+    Compile / unmanagedResourceDirectories += baseDirectory.value / "main" / "resources" / "vsrc" / "mdio" / "rtl",
+    Test / scalaSource := baseDirectory.value / "test" / "scala"
   )
   .settings(scalaTestSettings)
