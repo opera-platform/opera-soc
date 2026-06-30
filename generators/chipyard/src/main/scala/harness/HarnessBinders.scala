@@ -349,6 +349,108 @@ class WithOffchipBusSelPlusArg extends HarnessBinder({
   }
 })
 
+// Simulation-only 125 MHz RGMII clock source with a 90-degree companion clock.
+class EthClockSource extends BlackBox with HasBlackBoxInline {
+  val io = IO(new Bundle {
+    val gtx_clk = Output(Clock())
+    val gtx_clk90 = Output(Clock())
+  })
+  setInline("EthClockSource.v",
+    s"""
+      |module EthClockSource (
+      |    output gtx_clk,
+      |    output gtx_clk90
+      |);
+      |  timeunit 1ns/1ps;
+      |  reg clk_i   = 1'b0;
+      |  reg clk90_i = 1'b0;
+      |  always #4.0 clk_i = ~clk_i;
+      |  initial begin
+      |    #2.0;
+      |    forever #4.0 clk90_i = ~clk90_i;
+      |  end
+      |  assign gtx_clk   = clk_i;
+      |  assign gtx_clk90 = clk90_i;
+      |endmodule
+      |""".stripMargin)
+}
+
+class WithEthernetRGMIILoopback extends HarnessBinder({
+  case (th: HasHarnessInstantiators, port: EthernetRGMIIPort, chipId: Int) => {
+    val ethClk = Module(new EthClockSource)
+    port.io.gtx_clk := ethClk.io.gtx_clk
+    port.io.gtx_clk90 := ethClk.io.gtx_clk90
+    port.io.gtx_rst := ResetCatchAndSync(ethClk.io.gtx_clk, th.harnessBinderReset.asBool)
+
+    port.io.phy.rgmii_rx_clk := port.io.phy.rgmii_tx_clk
+    port.io.phy.rgmii_rxd := port.io.phy.rgmii_txd
+    port.io.phy.rgmii_rx_ctl := port.io.phy.rgmii_tx_ctl
+  }
+})
+
+// Simulation-only 125 MHz single-phase clock for the GMII MAC.
+class EthClockSource125 extends BlackBox with HasBlackBoxInline {
+  val io = IO(new Bundle {
+    val clk = Output(Clock())
+  })
+  setInline("EthClockSource125.v",
+    s"""
+      |module EthClockSource125 (
+      |    output clk
+      |);
+      |  timeunit 1ns/1ps;
+      |  reg clk_i = 1'b0;
+      |  always #4.0 clk_i = ~clk_i;
+      |  assign clk = clk_i;
+      |endmodule
+      |""".stripMargin)
+}
+
+class WithEthernetGMIILoopback extends HarnessBinder({
+  case (th: HasHarnessInstantiators, port: EthernetGMIIPort, chipId: Int) => {
+    val ethClk = Module(new EthClockSource125)
+    port.io.gtx_clk := ethClk.io.clk
+    port.io.gtx_rst := ResetCatchAndSync(ethClk.io.clk, th.harnessBinderReset.asBool)
+
+    port.io.phy.gmii_rx_clk := port.io.phy.gmii_tx_clk
+    port.io.phy.gmii_rxd := port.io.phy.gmii_txd
+    port.io.phy.gmii_rx_dv := port.io.phy.gmii_tx_en
+    port.io.phy.gmii_rx_er := port.io.phy.gmii_tx_er
+    port.io.phy.mii_tx_clk := port.io.phy.gmii_tx_clk
+  }
+})
+
+// Simulation-only 156.25 MHz single-phase clock for the 10G/XGMII MAC.
+class EthClockSource156 extends BlackBox with HasBlackBoxInline {
+  val io = IO(new Bundle {
+    val clk = Output(Clock())
+  })
+  setInline("EthClockSource156.v",
+    s"""
+      |module EthClockSource156 (
+      |    output clk
+      |);
+      |  timeunit 1ns/1ps;
+      |  reg clk_i = 1'b0;
+      |  always #3.2 clk_i = ~clk_i;
+      |  assign clk = clk_i;
+      |endmodule
+      |""".stripMargin)
+}
+
+class WithEthernetXGMIILoopback extends HarnessBinder({
+  case (th: HasHarnessInstantiators, port: EthernetXGMIIPort, chipId: Int) => {
+    val ethClk = Module(new EthClockSource156)
+    port.io.tx_clk := ethClk.io.clk
+    port.io.rx_clk := ethClk.io.clk
+    port.io.tx_rst := ResetCatchAndSync(ethClk.io.clk, th.harnessBinderReset.asBool)
+    port.io.rx_rst := ResetCatchAndSync(ethClk.io.clk, th.harnessBinderReset.asBool)
+
+    port.io.phy.xgmii_rxd := port.io.phy.xgmii_txd
+    port.io.phy.xgmii_rxc := port.io.phy.xgmii_txc
+  }
+})
+
 class WithCTCTiedOff extends HarnessBinder({
   case (th: HasHarnessInstantiators, port: CTCPort, chipId: Int) => {
     port.io match {
