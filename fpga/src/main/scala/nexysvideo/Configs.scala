@@ -44,6 +44,31 @@ class RocketNexysVideoConfig extends Config(
   new chipyard.RocketConfig)
 // DOC include end: WithNexysVideoTweaks and Rocket
 
+class WithNexysVideoEthernetTweaks extends Config(
+  new WithNexysVideoEthernet ++
+  new rivet.mdio.WithEthernetMDIO ++
+  new WithNexysVideoMDIO)
+
+class WithNexysVideoVerilogEthTweaks(freqMHz: Double = 50) extends Config(
+  new rivet.wrapper.WithEthernetRGMII ++
+  new WithNexysVideoEthernetTweaks ++
+  new WithNexysVideoTweaks(freqMHz))
+
+class RocketNexysVideoVerilogEthConfig extends Config(
+  new WithNexysVideoVerilogEthTweaks ++
+  new chipyard.config.WithBroadcastManager ++ // no l2
+  new chipyard.RocketConfig)
+
+class WithNexysVideoChiselEthTweaks(freqMHz: Double = 50) extends Config(
+  new rivet.WithEthernetRGMII ++
+  new WithNexysVideoEthernetTweaks ++
+  new WithNexysVideoTweaks(freqMHz))
+
+class RocketNexysVideoChiselEthConfig extends Config(
+  new WithNexysVideoChiselEthTweaks ++
+  new chipyard.config.WithBroadcastManager ++ // no l2
+  new chipyard.RocketConfig)
+
 // DOC include start: WithTinyNexysVideoTweaks and Rocket
 class WithTinyNexysVideoTweaks extends Config(
   new WithNexysVideoUARTTSI ++
@@ -73,4 +98,3 @@ class BringupNexysVideoConfig extends Config(
   new WithNexysVideoSerialTLToGPIO ++
   new WithNexysVideoTweaks(freqMHz = 75) ++
   new chipyard.ChipBringupHostConfig)
-
