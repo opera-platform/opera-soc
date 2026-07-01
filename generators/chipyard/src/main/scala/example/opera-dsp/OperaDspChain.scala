@@ -65,6 +65,7 @@ object OperaDspChainParamsFactory {
       divBy2Reg     = true,
       directionReg  = true,
       overflowReg   = true,
+      numAddPipes   = 1,
       numMulPipes   = 1,
       useBitReverse = false,
       drainOnLastReg = true
@@ -79,6 +80,8 @@ object OperaDspChainParamsFactory {
       magType       = LogJPLSquared,
       lutTableSize  = Some(10),
       lutTableWidth = Some(12),
+      addPipeRegs   = true,
+      mulPipeRegs   = true,
       trimType      = Convergent
     )
 }
@@ -134,11 +137,11 @@ class TLOperaDspChain(params: OperaDspChainParams, controlBeatBytes: Int)(implic
     beatBytes = controlBeatBytes
   ))
 
-  frameLast.streamNode := dma.streamNode
-  windowing.streamNode := frameLast.streamNode
-  fft.streamNode := windowing.streamNode
-  logMagnitude.streamNode := fft.streamNode
-  dma.streamNode := logMagnitude.streamNode
+  frameLast.streamNode := AXI4StreamBuffer() := dma.streamNode
+  windowing.streamNode := AXI4StreamBuffer() := frameLast.streamNode
+  fft.streamNode := AXI4StreamBuffer() := windowing.streamNode
+  logMagnitude.streamNode := AXI4StreamBuffer() := fft.streamNode
+  dma.streamNode := AXI4StreamBuffer() := logMagnitude.streamNode
 
   val dmaCsrNode = dma.axiSlaveNode
   val dmaMemoryNode = dma.axiMasterNode

@@ -59,6 +59,14 @@ class RocketNexysVideoVerilogEthConfig extends Config(
   new chipyard.config.WithBroadcastManager ++ // no l2
   new chipyard.RocketConfig)
 
+class OperaDspNexysVideoConfig extends Config(
+  new chipyard.example.operadsp.WithOperaDspChain(
+    chipyard.example.operadsp.OperaDspChainParams(numPoints = 1024)
+  ) ++
+  new WithNexysVideoVerilogEthTweaks(freqMHz = 50) ++
+  new chipyard.config.WithBroadcastManager ++ // no l2
+  new chipyard.RocketConfig)
+
 class WithNexysVideoChiselEthTweaks(freqMHz: Double = 50) extends Config(
   new rivet.WithEthernetRGMII ++
   new WithNexysVideoEthernetTweaks ++
