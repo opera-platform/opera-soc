@@ -32,6 +32,7 @@ class DigitalTop(implicit p: Parameters) extends ChipyardSystem
   with sifive.blocks.devices.spi.HasPeripherySPI // Enables optionally adding the sifive SPI port
   with icenet.CanHavePeripheryIceNIC // Enables optionally adding the IceNIC for FireSim
   with chipyard.example.CanHavePeripheryGCD // Enables optionally adding the GCD example widget
+  with chipyard.example.operadsp.CanHavePeripheryOperaDspChain // Enables optionally adding the OPERA DSP chain
   with rivet.common.CanHavePeripheryEthernetRGMII // Enables optionally adding the RGMII Ethernet widget
   with rivet.common.CanHavePeripheryEthernetGMII // Enables optionally adding the GMII Ethernet widget
   with rivet.common.CanHavePeripheryEthernetXGMII // Enables optionally adding the XGMII Ethernet widget
