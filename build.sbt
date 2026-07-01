@@ -34,6 +34,7 @@ lazy val commonSettings = Seq(
     case PathList("chisel3", "stage", xs @ _*) => chiselFirrtlMergeStrategy
     case PathList("chisel", "stage", xs @ _*) => chiselFirrtlMergeStrategy
     case PathList("firrtl", "stage", xs @ _*) => chiselFirrtlMergeStrategy
+    case PathList("parameters.json") => MergeStrategy.discard
     case PathList("META-INF", _*) => MergeStrategy.discard
     // should be safe in JDK11: https://stackoverflow.com/questions/54834125/sbt-assembly-deduplicate-module-info-class
     case x if x.endsWith("module-info.class") => MergeStrategy.discard
@@ -176,10 +177,22 @@ lazy val chipyard = {
       constellation, barf, shuttle, rerocc,
     ).map(sbt.Project.projectToRef) ++
     (if (useChisel7) Seq() else Seq(sbt.Project.projectToRef(firrtl2_bridge))) ++
-    (if (useChisel7) Seq() else Seq(sbt.Project.projectToRef(dsptools), sbt.Project.projectToRef(rocket_dsp_utils)))
+    (if (useChisel7) Seq() else Seq(sbt.Project.projectToRef(dsptools), sbt.Project.projectToRef(rocket_dsp_utils))) ++
+    (if (useChisel7) Seq() else Seq(
+      sbt.Project.projectToRef(opera_windowing),
+      sbt.Project.projectToRef(opera_fft),
+      sbt.Project.projectToRef(opera_log_magnitude)
+    ))
 
   val baseDeps: Seq[sbt.ClasspathDep[sbt.ProjectReference]] =
     baseProjects.map(pr => sbt.ClasspathDependency(pr, None))
+
+  val operaDspTestDeps: Seq[sbt.ClasspathDep[sbt.ProjectReference]] =
+    if (useChisel7) Seq.empty else Seq(
+      sbt.ClasspathDependency(sbt.Project.projectToRef(opera_windowing), Some("test->test")),
+      sbt.ClasspathDependency(sbt.Project.projectToRef(opera_fft), Some("test->test")),
+      sbt.ClasspathDependency(sbt.Project.projectToRef(opera_log_magnitude), Some("test->test"))
+    )
 
   // Optional settings to exclude specific sources under Chisel 7
   val dspExcludeSettings: Seq[Def.Setting[_]] = if (useChisel7) Seq(
@@ -189,7 +202,9 @@ lazy val chipyard = {
       val excludeList = Seq(
         // Directories or files relative to repo root
         "generators/chipyard/src/main/scala/example/dsptools",
+        "generators/chipyard/src/main/scala/example/opera-dsp",
         "generators/chipyard/src/main/scala/config/MMIOAcceleratorConfigs.scala",
+        "generators/chipyard/src/main/scala/config/OperaDspConfigs.scala",
         "generators/chipyard/src/main/scala/config/TutorialConfigs.scala",
         "generators/chipyard/src/main/scala/upf"
       ).map(p => (root / p).getCanonicalFile)
@@ -202,7 +217,7 @@ lazy val chipyard = {
   ) else Seq.empty
 
   var cy = Project(id = "chipyard", base = file("generators/chipyard"))
-    .dependsOn(baseDeps: _*)
+    .dependsOn((baseDeps ++ operaDspTestDeps): _*)
     .settings(libraryDependencies ++= rocketLibDeps.value)
     .settings(
       libraryDependencies ++= Seq(
