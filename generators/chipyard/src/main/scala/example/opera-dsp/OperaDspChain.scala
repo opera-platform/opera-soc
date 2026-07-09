@@ -9,6 +9,7 @@ import freechips.rocketchip.amba.axi4stream._
 import freechips.rocketchip.diplomacy.AddressSet
 import freechips.rocketchip.subsystem.{BaseSubsystem, FBUS, PBUS, TLBusWrapperLocation}
 import freechips.rocketchip.tilelink._
+import opera.cfar.{CFAREdgePolicy, CFARParams, CFARTL, CFARType}
 import opera.fft.{DIF, FFTParams, FFTTL, Radix22}
 import opera.logmagnitude.{LogJPLSquared, LogMagnitudeParams, MagnitudeTL}
 import opera.windowing.{HammingWindow, WindowingParams, WindowingTL}
@@ -16,16 +17,17 @@ import org.chipsalliance.cde.config.{Config, Field, Parameters}
 import org.chipsalliance.diplomacy.lazymodule._
 
 case class OperaDspChainParams(
-    numPoints:             Int = 16,
-    streamBytes:           Int = 4,
+    numPoints:             Int = 1024,
+    streamBytes:           Int = 8,
     dmaAddress:            AddressSet = AddressSet(0x10050000L, 0xfff),
     windowingAddress:      AddressSet = AddressSet(0x10051000L, 0xfff),
     windowingRamAddress:   AddressSet = AddressSet(0x10052000L, 0xfff),
     fftAddress:            AddressSet = AddressSet(0x10053000L, 0xfff),
-    logMagnitudeAddress:   AddressSet = AddressSet(0x10054000L, 0xfff)) {
+    logMagnitudeAddress:   AddressSet = AddressSet(0x10054000L, 0xfff),
+    cfarAddress:           AddressSet = AddressSet(0x10055000L, 0xfff)) {
   require(numPoints > 0, "numPoints must be positive")
   require((numPoints & (numPoints - 1)) == 0, s"numPoints must be a power of two, got $numPoints")
-  require(streamBytes == 4, s"OPERA DSP chain currently supports 32-bit streams, got $streamBytes bytes")
+  require(streamBytes == 8, s"DMA stream must match the 64-bit front bus, got $streamBytes bytes")
 }
 
 case class OperaDspChainAttachParams(
@@ -67,8 +69,33 @@ object OperaDspChainParamsFactory {
       overflowReg   = true,
       numAddPipes   = 1,
       numMulPipes   = 1,
-      useBitReverse = false,
+      useBitReverse = true,
       drainOnLastReg = true
+    )
+  }
+
+  def cfarMaxFftSize(params: OperaDspChainParams): Int = math.max(1024, params.numPoints)
+
+  def cfar(params: OperaDspChainParams): CFARParams[FixedPoint] = {
+    val maxFftSize = cfarMaxFftSize(params)
+    // Packed output beat is Cat(threshold, cut, fftBin, peak); size threshold so it is exactly 64 bits.
+    val thresholdWidth = 64 - 32 - 1 - log2Ceil(maxFftSize)
+    require(thresholdWidth >= 16, s"threshold too narrow for maxFftSize=$maxFftSize")
+    CFARParams.fixed(
+      inputType         = FixedPoint(32.W, 14.BP),  // must equal log-magnitude output width (hardware assert)
+      thresholdType     = FixedPoint(thresholdWidth.W, 14.BP),
+      scaleType         = FixedPoint(thresholdWidth.W, 14.BP),
+      cfarType          = CFARType.CellAveraging,
+      maxReferenceCells = 16,
+      maxGuardCells     = 4,
+      maxFftSize        = maxFftSize,
+      sendCut           = true,
+      logMode           = true,
+      runtimeLogMode    = true,
+      edgePolicy        = CFAREdgePolicy.OneSidedAverage,
+      runtimeEdgePolicy = true,
+      addPipeStages     = 1,
+      mulPipeStages     = 1
     )
   }
 
@@ -136,18 +163,26 @@ class TLOperaDspChain(params: OperaDspChainParams, controlBeatBytes: Int)(implic
     params = OperaDspChainParamsFactory.logMagnitude(params),
     beatBytes = controlBeatBytes
   ))
+  val cfar = LazyModule(new CFARTL(
+    address = params.cfarAddress,
+    params = OperaDspChainParamsFactory.cfar(params),
+    beatBytes = controlBeatBytes
+  ))
 
-  frameLast.streamNode := AXI4StreamBuffer() := dma.streamNode
+  // DMA runs 8-byte beats (stream width == AXI width); oneToN(2) splits each 64-bit memory word into two 32-bit samples (LSB half first) for the processing path.
+  frameLast.streamNode := AXI4StreamBuffer() := AXI4StreamWidthAdapter.oneToN(2) := dma.streamNode
   windowing.streamNode := AXI4StreamBuffer() := frameLast.streamNode
   fft.streamNode := AXI4StreamBuffer() := windowing.streamNode
   logMagnitude.streamNode := AXI4StreamBuffer() := fft.streamNode
-  dma.streamNode := AXI4StreamBuffer() := logMagnitude.streamNode
+  cfar.streamNode := AXI4StreamBuffer() := logMagnitude.streamNode
+  dma.streamNode := AXI4StreamBuffer() := cfar.streamNode
 
   val dmaCsrNode = dma.axiSlaveNode
   val dmaMemoryNode = dma.axiMasterNode
   val windowingMem = windowing.mem.get
   val fftMem = fft.mem.get
   val logMagnitudeMem = logMagnitude.mem.get
+  val cfarMem = cfar.mem.get
 
   lazy val module = new LazyModuleImp(this)
 }
@@ -179,9 +214,14 @@ trait CanHavePeripheryOperaDspChain { this: BaseSubsystem =>
     manager.coupleTo(s"$portName-log-magnitude") {
       chain.logMagnitudeMem := TLFIFOFixer() := TLFragmenter(manager.beatBytes, manager.blockBytes) := _
     }
+    manager.coupleTo(s"$portName-cfar") {
+      chain.cfarMem := TLFIFOFixer() := TLFragmenter(manager.beatBytes, manager.blockBytes) := _
+    }
 
     client.coupleFrom(s"$portName-dma") {
+      // The TLFIFOFixer is required because AXI4ToTL recycles TL source IDs assuming FIFO-ordered responses; without it two outstanding bursts can complete out of order and re-use a live source.
       _ :=
+        TLFIFOFixer(TLFIFOFixer.all) :=
         TLWidthWidget(params.streamBytes) :=
         AXI4ToTL() :=
         AXI4UserYanker(Some(2)) :=
