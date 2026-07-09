@@ -181,7 +181,8 @@ lazy val chipyard = {
     (if (useChisel7) Seq() else Seq(
       sbt.Project.projectToRef(opera_windowing),
       sbt.Project.projectToRef(opera_fft),
-      sbt.Project.projectToRef(opera_log_magnitude)
+      sbt.Project.projectToRef(opera_log_magnitude),
+      sbt.Project.projectToRef(opera_cfar)
     ))
 
   val baseDeps: Seq[sbt.ClasspathDep[sbt.ProjectReference]] =
@@ -191,7 +192,8 @@ lazy val chipyard = {
     if (useChisel7) Seq.empty else Seq(
       sbt.ClasspathDependency(sbt.Project.projectToRef(opera_windowing), Some("test->test")),
       sbt.ClasspathDependency(sbt.Project.projectToRef(opera_fft), Some("test->test")),
-      sbt.ClasspathDependency(sbt.Project.projectToRef(opera_log_magnitude), Some("test->test"))
+      sbt.ClasspathDependency(sbt.Project.projectToRef(opera_log_magnitude), Some("test->test")),
+      sbt.ClasspathDependency(sbt.Project.projectToRef(opera_cfar), Some("test->test"))
     )
 
   // Optional settings to exclude specific sources under Chisel 7
@@ -579,7 +581,9 @@ lazy val operaDspSettings = commonSettings ++ scalaTestSettings ++ Seq(
 )
 
 lazy val operaDspLeafSettings = operaDspSettings ++ Seq(
-  Test / fork := true
+  Test / fork := true,
+  // Forward test-selection props (e.g. -Dfft.drainOnLastSize=1024) into the forked test JVM
+  Test / javaOptions ++= sys.props.collect { case (k, v) if k.startsWith("fft.") => s"-D$k=$v" }.toSeq
 )
 
 lazy val opera_common = Project(id = "opera-common", base = file("generators/opera-dsp/common"))
