@@ -15,6 +15,7 @@ import opera.logmagnitude.{LogJPLSquared, LogMagnitudeParams, MagnitudeTL}
 import opera.windowing.{HammingWindow, WindowingParams, WindowingTL}
 import org.chipsalliance.cde.config.{Config, Field, Parameters}
 import org.chipsalliance.diplomacy.lazymodule._
+import rivet.dma.StreamingAXI4DMAWithCSR
 
 case class OperaDspChainParams(
     numPoints:             Int = 256,
