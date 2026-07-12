@@ -1,1 +1,7 @@
+/*.riscv
+/*.dump
+/pc/opera_dsp_pc
+/pc/*.txt
+/pc/*.csv
+/pc/*.png
 /pc/generated/
