@@ -57,14 +57,16 @@ class WithNexysVideoVerilogEthTweaks(freqMHz: Double = 50) extends Config(
 class RocketNexysVideoVerilogEthConfig extends Config(
   new WithNexysVideoVerilogEthTweaks ++
   new chipyard.config.WithBroadcastManager ++ // no l2
+  new freechips.rocketchip.rocket.WithCFlushEnabled ++
   new chipyard.RocketConfig)
 
 class OperaDspNexysVideoConfig extends Config(
   new chipyard.example.operadsp.WithOperaDspChain(
-    chipyard.example.operadsp.OperaDspChainParams(numPoints = 1024)
+    chipyard.example.operadsp.OperaDspChainParams(numPoints = 256)
   ) ++
   new WithNexysVideoVerilogEthTweaks(freqMHz = 50) ++
   new chipyard.config.WithBroadcastManager ++ // no l2
+  new freechips.rocketchip.rocket.WithCFlushEnabled ++
   new chipyard.RocketConfig)
 
 class WithNexysVideoChiselEthTweaks(freqMHz: Double = 50) extends Config(
@@ -75,6 +77,7 @@ class WithNexysVideoChiselEthTweaks(freqMHz: Double = 50) extends Config(
 class RocketNexysVideoChiselEthConfig extends Config(
   new WithNexysVideoChiselEthTweaks ++
   new chipyard.config.WithBroadcastManager ++ // no l2
+  new freechips.rocketchip.rocket.WithCFlushEnabled ++
   new chipyard.RocketConfig)
 
 // DOC include start: WithTinyNexysVideoTweaks and Rocket
