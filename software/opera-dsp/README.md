@@ -86,6 +86,22 @@ The script reads the 256-point and CFAR settings from the firmware headers, runs
 
 A mismatch report includes the record, frame, bin, expected raw 64-bit word, and FPGA raw 64-bit word. This distinguishes numerical DSP mismatches from a mere difference in peak counts.
 
+## Plot CFAR output
+
+Plot the first returned frame's CUT, threshold, and detections to `rx_file.png`:
+
+```bash
+cd <opera-soc>/software/opera-dsp/pc
+python3 ./plot_cfar.py rx_file.csv
+```
+
+Select one or more frames or display the plot interactively with:
+
+```bash
+python3 ./plot_cfar.py rx_file.csv --frame 0 --frame 1 --output cfar.png
+python3 ./plot_cfar.py rx_file.csv --frame 0 --show
+```
+
 `tx_file.txt` is decimal text:
 
 ```text
