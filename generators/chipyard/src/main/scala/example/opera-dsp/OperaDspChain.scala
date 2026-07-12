@@ -17,7 +17,7 @@ import org.chipsalliance.cde.config.{Config, Field, Parameters}
 import org.chipsalliance.diplomacy.lazymodule._
 
 case class OperaDspChainParams(
-    numPoints:             Int = 1024,
+    numPoints:             Int = 256,
     streamBytes:           Int = 8,
     dmaAddress:            AddressSet = AddressSet(0x10050000L, 0xfff),
     windowingAddress:      AddressSet = AddressSet(0x10051000L, 0xfff),
@@ -74,7 +74,7 @@ object OperaDspChainParamsFactory {
     )
   }
 
-  def cfarMaxFftSize(params: OperaDspChainParams): Int = math.max(1024, params.numPoints)
+  def cfarMaxFftSize(params: OperaDspChainParams): Int = math.max(256, params.numPoints)
 
   def cfar(params: OperaDspChainParams): CFARParams[FixedPoint] = {
     val maxFftSize = cfarMaxFftSize(params)
