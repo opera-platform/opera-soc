@@ -12,5 +12,6 @@ opera_dsp_pc: opera_dsp_pc.c ../../ethernet/protocol.c ../../ethernet/protocol.h
 
 clean:
 	rm -f $(TARGETS)
+	rm -rf generated
 
 .PHONY: all clean

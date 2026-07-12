@@ -10,7 +10,13 @@ script_dir=$(cd -- "$(dirname -- "${BASH_SOURCE[0]}")" && pwd)
 root=$(cd -- "$script_dir/../../.." && pwd)
 input_text=$1
 fpga_csv=$2
-expected_hex=${3:-/tmp/opera_dsp_expected.hex}
+if [[ $# -eq 3 ]]; then
+  expected_hex=$3
+else
+  generated_dir="$script_dir/generated"
+  mkdir -p "$generated_dir"
+  expected_hex="$generated_dir/opera_dsp_expected.hex"
+fi
 model_header="${expected_hex}.h"
 regs="$root/software/opera-dsp/opera_dsp_regs.h"
 config="$root/software/opera-dsp/mmio_config.h"
