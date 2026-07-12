@@ -8,10 +8,10 @@ fi
 
 script_dir=$(cd -- "$(dirname -- "${BASH_SOURCE[0]}")" && pwd)
 root=$(cd -- "$script_dir/../../.." && pwd)
-input_text=$1
-fpga_csv=$2
+input_text=$(realpath -- "$1")
+fpga_csv=$(realpath -- "$2")
 if [[ $# -eq 3 ]]; then
-  expected_hex=$3
+  expected_hex=$(realpath -m -- "$3")
 else
   generated_dir="$script_dir/generated"
   mkdir -p "$generated_dir"
@@ -37,7 +37,10 @@ cfar_edge=$(read_macro "$config" OPERA_DSP_CFAR_EDGE_POLICY)
 peak_grouping=$(read_macro "$config" OPERA_DSP_CFAR_PEAK_GROUPING)
 
 cd "$root"
-source env.sh
+# Use the root environment unless it is already active in the caller.
+if [[ ${CONDA_PREFIX:-} != "$root/.conda-env" ]]; then
+  source "$root/env.sh"
+fi
 set -u
 sbt -J-Xms2048M -J-Xmx8G \
   "chipyard/Test/runMain chipyard.example.operadsp.DspChainApp \
