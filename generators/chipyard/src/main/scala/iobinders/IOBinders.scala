@@ -646,19 +646,3 @@ class WithEthernetMDIOPunchthrough extends OverrideIOBinder({
     (Seq(EthernetMDIOPort(() => port)), Nil)
   }).getOrElse((Nil, Nil))
 })
-
-class WithEthernetGMIIPunchthrough extends OverrideIOBinder({
-  (system: rivet.common.CanHavePeripheryEthernetGMII) => system.ioGmii.map({ p =>
-    val port = IO(DataMirror.internal.chiselTypeClone[rivet.common.GmiiIO](system.ioGmii.get))
-    port <> p
-    (Seq(EthernetGMIIPort(() => port)), Nil)
-  }).getOrElse((Nil, Nil))
-})
-
-class WithEthernetXGMIIPunchthrough extends OverrideIOBinder({
-  (system: rivet.common.CanHavePeripheryEthernetXGMII) => system.ioXgmii.map({ p =>
-    val port = IO(DataMirror.internal.chiselTypeClone[rivet.common.XgmiiIO](system.ioXgmii.get))
-    port <> p
-    (Seq(EthernetXGMIIPort(() => port)), Nil)
-  }).getOrElse((Nil, Nil))
-})

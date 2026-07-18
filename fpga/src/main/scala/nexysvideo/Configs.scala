@@ -69,17 +69,6 @@ class OperaDspNexysVideoConfig extends Config(
   new freechips.rocketchip.rocket.WithCFlushEnabled ++
   new chipyard.RocketConfig)
 
-class WithNexysVideoChiselEthTweaks(freqMHz: Double = 50) extends Config(
-  new rivet.WithEthernetRGMII ++
-  new WithNexysVideoEthernetTweaks ++
-  new WithNexysVideoTweaks(freqMHz))
-
-class RocketNexysVideoChiselEthConfig extends Config(
-  new WithNexysVideoChiselEthTweaks ++
-  new chipyard.config.WithBroadcastManager ++ // no l2
-  new freechips.rocketchip.rocket.WithCFlushEnabled ++
-  new chipyard.RocketConfig)
-
 // DOC include start: WithTinyNexysVideoTweaks and Rocket
 class WithTinyNexysVideoTweaks extends Config(
   new WithNexysVideoUARTTSI ++

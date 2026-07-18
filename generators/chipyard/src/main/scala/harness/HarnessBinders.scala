@@ -388,69 +388,6 @@ class WithEthernetRGMIILoopback extends HarnessBinder({
   }
 })
 
-// Simulation-only 125 MHz single-phase clock for the GMII MAC.
-class EthClockSource125 extends BlackBox with HasBlackBoxInline {
-  val io = IO(new Bundle {
-    val clk = Output(Clock())
-  })
-  setInline("EthClockSource125.v",
-    s"""
-      |module EthClockSource125 (
-      |    output clk
-      |);
-      |  timeunit 1ns/1ps;
-      |  reg clk_i = 1'b0;
-      |  always #4.0 clk_i = ~clk_i;
-      |  assign clk = clk_i;
-      |endmodule
-      |""".stripMargin)
-}
-
-class WithEthernetGMIILoopback extends HarnessBinder({
-  case (th: HasHarnessInstantiators, port: EthernetGMIIPort, chipId: Int) => {
-    val ethClk = Module(new EthClockSource125)
-    port.io.gtx_clk := ethClk.io.clk
-    port.io.gtx_rst := ResetCatchAndSync(ethClk.io.clk, th.harnessBinderReset.asBool)
-
-    port.io.phy.gmii_rx_clk := port.io.phy.gmii_tx_clk
-    port.io.phy.gmii_rxd := port.io.phy.gmii_txd
-    port.io.phy.gmii_rx_dv := port.io.phy.gmii_tx_en
-    port.io.phy.gmii_rx_er := port.io.phy.gmii_tx_er
-    port.io.phy.mii_tx_clk := port.io.phy.gmii_tx_clk
-  }
-})
-
-// Simulation-only 156.25 MHz single-phase clock for the 10G/XGMII MAC.
-class EthClockSource156 extends BlackBox with HasBlackBoxInline {
-  val io = IO(new Bundle {
-    val clk = Output(Clock())
-  })
-  setInline("EthClockSource156.v",
-    s"""
-      |module EthClockSource156 (
-      |    output clk
-      |);
-      |  timeunit 1ns/1ps;
-      |  reg clk_i = 1'b0;
-      |  always #3.2 clk_i = ~clk_i;
-      |  assign clk = clk_i;
-      |endmodule
-      |""".stripMargin)
-}
-
-class WithEthernetXGMIILoopback extends HarnessBinder({
-  case (th: HasHarnessInstantiators, port: EthernetXGMIIPort, chipId: Int) => {
-    val ethClk = Module(new EthClockSource156)
-    port.io.tx_clk := ethClk.io.clk
-    port.io.rx_clk := ethClk.io.clk
-    port.io.tx_rst := ResetCatchAndSync(ethClk.io.clk, th.harnessBinderReset.asBool)
-    port.io.rx_rst := ResetCatchAndSync(ethClk.io.clk, th.harnessBinderReset.asBool)
-
-    port.io.phy.xgmii_rxd := port.io.phy.xgmii_txd
-    port.io.phy.xgmii_rxc := port.io.phy.xgmii_txc
-  }
-})
-
 class WithCTCTiedOff extends HarnessBinder({
   case (th: HasHarnessInstantiators, port: CTCPort, chipId: Int) => {
     port.io match {
